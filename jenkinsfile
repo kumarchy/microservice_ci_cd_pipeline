@@ -79,6 +79,8 @@ pipeline {
 
         stage('Build & Run Containers'){
             steps {
+                sh 'ls -la */.'
+                sh 'cat auth-service/.env'
                 sh 'docker compose up -d --build'
             }
         }
