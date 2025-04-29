@@ -1,85 +1,50 @@
 pipeline {
-
     agent any
 
+    environment {
+        // Define MONGO_URI here so it's available throughout the pipeline
+        MONGO_URI = 'mongodb://mongo:27017/microservices'
+    }
+
     stages {
-        stage('Clone Code'){
+        stage('Clone Code') {
             steps {
-                git branch:'main', url:'https://github.com/kumarchy/microservice_ci_cd_pipeline'
+                git branch: 'main', url: 'https://github.com/kumarchy/microservice_ci_cd_pipeline'
             }
         }
 
-        stage('Create Environment Files'){
-            steps{
-                // Create auth-service .env file
-                sh '''
-                cat > auth-service/.env << EOL
-                PORT = 3001
-                JWT_SECRET = MICROSERVICE_JWT_SECRET
-                DATABASE_URL=postgresql://postgres:root@authPostgresDB:5432/authDB?schema=public
-                EOL
-                '''
-
-                // Create product-service .env file
-                sh '''
-                cat > product-service/.env << EOL
-                PORT = 3002
-                MONGO_URI=mongodb://mongo:27017/microservices                
-                EOL
-                '''
-
-                // Create order-service .env file
-                sh '''
-                cat > order-service/.env << EOL
-                PORT = 3003
-                DATABASE_URL=postgresql://postgres:root@orderPostgresDB:5432/orderDB?schema=public
-                EOL
-                '''
-
-                // Create gateway .env file
-                sh '''
-                cat > gateway/.env << EOL
-                PORT=3000
-
-                AUTH_SERVICE_URL=http://localhost:3001
-                PRODUCT_SERVICE_URL=http://localhost:3002
-                ORDER_SERVICE_URL=http://localhost:3003
-                EOL
-                '''
-            }
-        }
-        
-        stage('Client Tests'){
+        stage('Build & Run Containers') {
             steps {
-                dir('client'){
-                    sh 'npm install'
-                   // sh 'npm test'
-                }
-            }
-        }
-        
-        stage('Server Tests'){
-            steps {
-                dir('auth-service'){
-                    sh 'npm install'
-                    // sh 'npm test'
-                }
+                script {
+                    // Create all environment files first
+                    writeFile file: 'auth-service/.env', text: """
+                    PORT = 3001
+                    JWT_SECRET = MICROSERVICE_JWT_SECRET
+                    DATABASE_URL=postgresql://postgres:root@authPostgresDB:5432/authDB?schema=public
+                    """
 
-                dir('order-service'){
-                    sh 'npm install'
-                     // sh 'npm test'
-                }
+                    writeFile file: 'product-service/.env', text: """
+                    PORT = 3002
+                    MONGO_URI=${MONGO_URI}
+                    """
 
-                dir('product-service'){
-                    sh 'npm install'
-                     // sh 'npm test'
-                }
-            }
-        }
+                    writeFile file: 'order-service/.env', text: """
+                    PORT = 3003
+                    DATABASE_URL=postgresql://postgres:root@orderPostgresDB:5432/orderDB?schema=public
+                    """
 
-        stage('Build & Run Containers'){
-            steps {
-                sh 'docker-compose up -d --build'
+                    writeFile file: 'gateway/.env', text: """
+                    PORT=3000
+                    AUTH_SERVICE_URL=http://auth-service:3001
+                    PRODUCT_SERVICE_URL=http://product-service:3002
+                    ORDER_SERVICE_URL=http://order-services:3003
+                    """
+
+                    // Run docker-compose with the environment variable
+                    withEnv(["MONGO_URI=${MONGO_URI}"]) {
+                        sh 'docker-compose up -d --build'
+                    }
+                }
             }
         }
     }
