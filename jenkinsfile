@@ -8,6 +8,46 @@ pipeline {
                 git branch:'main', url:'https://github.com/kumarchy/microservice_ci_cd_pipeline'
             }
         }
+
+        stage('Create Environment Files'){
+            steps{
+                // Create auth-service .env file
+                sh '''
+                cat > auth-service/.env << EOL
+                PORT = 3001
+                JWT_SECRET = MICROSERVICE_JWT_SECRET
+                DATABASE_URL=postgresql://postgres:root@authPostgresDB:5432/authDB?schema=public
+                EOL
+                '''
+
+                // Create product-service .env file
+                sh '''
+                cat > product-service/.env << EOL
+                PORT = 3002
+                MONGO_URI=mongodb://mongo:27017/microservices                
+                EOL
+                '''
+
+                // Create order-service .env file
+                sh '''
+                cat > order-service/.env << EOL
+                PORT = 3003
+                DATABASE_URL=postgresql://postgres:root@orderPostgresDB:5432/orderDB?schema=public
+                EOL
+                '''
+
+                // Create gateway .env file
+                sh '''
+                cat > gateway/.env << EOL
+                PORT=3000
+
+                AUTH_SERVICE_URL=http://localhost:3001
+                PRODUCT_SERVICE_URL=http://localhost:3002
+                ORDER_SERVICE_URL=http://localhost:3003
+                EOL
+                '''
+            }
+        }
         
         stage('Client Tests'){
             steps {
