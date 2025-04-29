@@ -18,21 +18,16 @@ pipeline {
     stages {
         stage('Clone Code'){
             steps {
-                git branch:'main', url:'https://github.com/kumarchy/microservice_ci_cd_pipeline'
+                checkout scm
             }
         }
         
-        stage('Client Tests'){
+        stage('Install Dependencies'){
             steps {
                 dir('client'){
                     sh 'npm install'
-                   // sh 'npm test'
                 }
-            }
-        }
-        
-        stage('Server Tests'){
-            steps {
+                
                 dir('auth-service'){
                     sh 'npm install'
                 }
@@ -50,10 +45,10 @@ pipeline {
                 }
             }
         }
-
-        stage('Create Environment Files'){
+        
+        stage('Prepare Environment'){
             steps {
-                // Create .env files for services
+                // Create .env files
                 sh """
                 # Auth Service .env
                 echo "PORT=${PORT_1}" > auth-service/.env
@@ -75,31 +70,44 @@ pipeline {
                 echo "ORDER_SERVICE_URL=${ORDER_SERVICE_URL}" >> gateway/.env
                 """
                 
-                // Debug to verify env files were created
+                // Debug - verify files exist
                 sh 'ls -la */.'
+                sh 'echo "Auth service .env content:"'
                 sh 'cat auth-service/.env'
             }
         }
 
-        stage('Build & Run Containers'){
+        stage('Build & Deploy'){
             steps {
-                // Use environment variables while running docker-compose
-                withEnv([
-                    "MONGO_URI=${MONGO_URI}",
-                    "DATABASE_URL_1=${DATABASE_URL_1}",
-                    "DATABASE_URL_3=${DATABASE_URL_3}",
-                    "JWT_SECRET=${JWT_SECRET}",
-                    "PORT_1=${PORT_1}",
-                    "PORT_2=${PORT_2}",
-                    "PORT_3=${PORT_3}",
-                    "GATEWAY_PORT=${GATEWAY_PORT}",
-                    "AUTH_SERVICE_URL=${AUTH_SERVICE_URL}",
-                    "PRODUCT_SERVICE_URL=${PRODUCT_SERVICE_URL}",
-                    "ORDER_SERVICE_URL=${ORDER_SERVICE_URL}"
-                ]) {
-                    sh 'docker-compose up -d --build'
-                }
+                sh 'echo "Starting Docker Compose build and deploy..."'
+                
+                // Pass environment variables to docker-compose
+                sh """
+                MONGO_URI="${MONGO_URI}" \\
+                DATABASE_URL_1="${DATABASE_URL_1}" \\
+                DATABASE_URL_3="${DATABASE_URL_3}" \\
+                JWT_SECRET="${JWT_SECRET}" \\
+                PORT_1="${PORT_1}" \\
+                PORT_2="${PORT_2}" \\
+                PORT_3="${PORT_3}" \\
+                GATEWAY_PORT="${GATEWAY_PORT}" \\
+                AUTH_SERVICE_URL="${AUTH_SERVICE_URL}" \\
+                PRODUCT_SERVICE_URL="${PRODUCT_SERVICE_URL}" \\
+                ORDER_SERVICE_URL="${ORDER_SERVICE_URL}" \\
+                docker-compose up -d --build
+                """
+                
+                sh 'echo "Docker Compose deployment completed"'
             }
+        }
+    }
+    
+    post {
+        success {
+            echo 'Pipeline executed successfully!'
+        }
+        failure {
+            echo 'Pipeline execution failed!'
         }
     }
 }
