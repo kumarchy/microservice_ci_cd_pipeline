@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  product-service:
+    build : ./
+    container_name: product-service
+    ports : 
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - MONGO_URI=${MONGO_URI}
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./mongo_data:/data/db
+
+volumes:
+  mongo_data:

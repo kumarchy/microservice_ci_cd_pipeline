@@ -1,0 +1,46 @@
+pipeline {
+
+    agent any
+
+    stages {
+        stage('Clone Code'){
+            steps {
+                git branch:'main', url:''
+            }
+        }
+        
+        stage('Client Tests'){
+            steps {
+                dir('client'){
+                    sh 'npm install'
+                   // sh 'npm test'
+                }
+            }
+        }
+        
+        stage('Server Tests'){
+            steps {
+                dir('auth-service'){
+                    sh 'npm install'
+                    // sh 'npm test'
+                }
+
+                dir('order-service'){
+                    sh 'npm install'
+                     // sh 'npm test'
+                }
+
+                dir('product-service'){
+                    sh 'npm install'
+                     // sh 'npm test'
+                }
+            }
+        }
+
+        stage('Build & Run Containers'){
+            steps {
+                sh 'docker compose up -d --build'
+            }
+        }
+    }
+}

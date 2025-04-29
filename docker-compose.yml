@@ -1,0 +1,116 @@
+version: '3.8'
+services:
+  # auth-services:
+    auth-services:
+      build: ./auth-service
+      container_name: auth-service
+      ports:
+        - "3001:3001"
+      environment:
+        - NODE_ENV=production
+      env_file:
+        - ./auth-service/.env
+      depends_on:
+        - authPostgresDB
+      command: sh -c "npx prisma migrate deploy && npm start"
+
+
+    authPostgresDB:
+      image: postgres:latest
+      container_name: authPostgresDB
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: root
+        POSTGRES_DB: authDB
+      ports:
+        - "5434:5432"
+      volumes:
+        - auth_db_data:/var/lib/postgresql/data
+  
+  #PRODUCT-SERVICE
+    product-service:
+      build : ./product-service
+      container_name: product-service
+      ports : 
+        - "3002:3002"
+      environment:
+        - NODE_ENV=production
+        - MONGO_URI=${MONGO_URI}
+      env_file:
+        - ./product-service/.env
+      depends_on:
+        - mongo
+
+    mongo:
+      image: mongo:latest
+      container_name: mongo
+      ports:
+        - "27018:27017"
+      volumes:
+        - mongo_data:/data/db
+
+  # ORDER-SERVICE
+    order-services:
+      build: ./order-service
+      container_name: order-services
+      ports:
+        - "3003:3003"
+      environment:
+        - NODE_ENV=production
+      env_file:
+        - ./order-service/.env
+      depends_on:
+        - orderPostgresDB
+      command: sh -c "npx prisma migrate deploy && npm start"
+
+
+    orderPostgresDB:
+      image: postgres:latest
+      container_name: orderPostgresDB
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: root
+        POSTGRES_DB: orderDB
+      ports:
+        - "5435:5432"
+      volumes:
+        - order_db_data:/var/lib/postgresql/data
+
+    # GATEWAY-SERVICE
+    gateway-services:
+      build: ./gateway
+      container_name: gateway-service
+      ports:
+        - "3000:3000"
+      environment:
+        - NODE_ENV=production
+      env_file:
+        - ./gateway/.env
+
+    #CLIENT-SERVICE
+    client:
+      build: ./client
+      container_name: client-service
+      ports:
+        - "5173:5173"
+
+    
+    #JENKINS-SERVICE
+    jenkins:
+      build: .
+      container_name: jenkins
+      ports:
+        - "8080:8080"
+        - "50000:50000"
+      user: root
+      volumes:
+        - jenkins_home:/var/jenkins_home
+        - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  auth_db_data:
+  order_db_data:
+  mongo_data:
+  jenkins_home:
+  
+  

@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  order-services:
+    build: ./
+    container_name: order-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - ./.env
+    depends_on:
+      - orderPostgresDB
+    command: sh -c "npx prisma migrate deploy && npm start"
+
+
+  orderPostgresDB:
+    image: postgres:latest
+    container_name: orderPostgresDB
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: orderDB
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./order_db_data:/var/lib/postgresql/data
+    
+volumes:
+  order_db_data:
+     
