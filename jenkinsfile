@@ -114,19 +114,22 @@ pipeline {
         }
         
         stage('Cleanup Existing Containers') {
-    steps {
-        sh '''
-            # Get all containers from the compose file that might be running
-            docker-compose down || true
-            
-            # Clean up any remaining containers with the same names
-            for container in $(docker ps -a --format '{{.Names}}' | grep -E 'mongo|client-service|gateway-service|auth-service|order-services|product-service|orderPostgresDB|authPostgresDB|jenkins'); do
-                docker stop "$container" || true
-                docker rm "$container" || true
-            done
-        '''
-    }
-}
+            steps {
+                sh '''
+                    # Stop and remove the mongo container if it exists
+                    if docker ps -a | grep -q mongo; then
+                        echo "Stopping and removing existing mongo container..."
+                        docker stop mongo || true
+                        docker rm mongo || true
+                    fi
+                    
+                    # Optionally stop other related containers that might conflict
+                    docker ps -a | grep -E 'gateway|auth-service|product-service|order-service' | awk '{print $1}' | xargs -r docker stop || true
+                    docker ps -a | grep -E 'gateway|auth-service|product-service|order-service' | awk '{print $1}' | xargs -r docker rm || true
+                
+                '''
+            }
+        }
 
         stage('Build & Deploy'){
             steps {
