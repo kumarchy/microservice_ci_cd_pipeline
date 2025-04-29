@@ -1,5 +1,4 @@
 pipeline {
-
     agent any
 
     stages {
@@ -11,41 +10,59 @@ pipeline {
 
         stage('Create Environment Files'){
             steps{
+                // Debug current directory
+                sh 'pwd'
+                sh 'ls -la'
+                
                 // Create auth-service .env file
                 sh '''
+                mkdir -p auth-service
                 cat > auth-service/.env << EOL
-                PORT = 3001
-                JWT_SECRET = MICROSERVICE_JWT_SECRET
-                DATABASE_URL=postgresql://postgres:root@authPostgresDB:5432/authDB?schema=public
-                EOL
+PORT=3001
+JWT_SECRET=MICROSERVICE_JWT_SECRET
+DATABASE_URL=postgresql://postgres:root@authPostgresDB:5432/authDB?schema=public
+EOL
+                chmod 644 auth-service/.env
                 '''
 
                 // Create product-service .env file
                 sh '''
+                mkdir -p product-service
                 cat > product-service/.env << EOL
-                PORT = 3002
-                MONGO_URI=mongodb://mongo:27017/microservices                
-                EOL
+PORT=3002
+MONGO_URI=mongodb://mongo:27017/microservices                
+EOL
+                chmod 644 product-service/.env
                 '''
 
                 // Create order-service .env file
                 sh '''
+                mkdir -p order-service
                 cat > order-service/.env << EOL
-                PORT = 3003
-                DATABASE_URL=postgresql://postgres:root@orderPostgresDB:5432/orderDB?schema=public
-                EOL
+PORT=3003
+DATABASE_URL=postgresql://postgres:root@orderPostgresDB:5432/orderDB?schema=public
+EOL
+                chmod 644 order-service/.env
                 '''
 
                 // Create gateway .env file
                 sh '''
+                mkdir -p gateway
                 cat > gateway/.env << EOL
-                PORT=3000
-
-                AUTH_SERVICE_URL=http://localhost:3001
-                PRODUCT_SERVICE_URL=http://localhost:3002
-                ORDER_SERVICE_URL=http://localhost:3003
-                EOL
+PORT=3000
+AUTH_SERVICE_URL=http://localhost:3001
+PRODUCT_SERVICE_URL=http://localhost:3002
+ORDER_SERVICE_URL=http://localhost:3003
+EOL
+                chmod 644 gateway/.env
                 '''
+                
+                // Verify env files were created
+                sh 'ls -la */.'
+                sh 'cat auth-service/.env'
+                sh 'cat product-service/.env'
+                sh 'cat order-service/.env'
+                sh 'cat gateway/.env'
             }
         }
         
@@ -79,9 +96,15 @@ pipeline {
 
         stage('Build & Run Containers'){
             steps {
-                sh 'ls -la */.'
-                sh 'cat auth-service/.env'
-                sh 'docker compose up -d --build'
+                // Check which docker compose command is available
+                sh 'docker-compose --version || echo "docker-compose not found"'
+                sh 'docker --version || echo "docker not found"'
+                
+                // Export MONGO_URI to environment and run docker compose
+                sh '''
+                export MONGO_URI=mongodb://mongo:27017/microservices
+                docker-compose up -d --build || docker compose up -d --build
+                '''
             }
         }
     }
