@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Correct credential binding syntax
         MONGO_URI = credentials('MONGO_URI')
         DATABASE_URL_1 = credentials('DATABASE_URL_1')
         DATABASE_URL_3 = credentials('DATABASE_URL_3')
@@ -36,37 +35,70 @@ pipeline {
             steps {
                 dir('auth-service'){
                     sh 'npm install'
-                    // Use proper environment variable export syntax
-                    sh "export PORT=${PORT_1}"
-                    sh "export JWT_SECRET=${JWT_SECRET}"
-                    sh "export DATABASE_URL=${DATABASE_URL_1}"
                 }
                 
                 dir('product-service'){
                     sh 'npm install'
-                    sh "export PORT=${PORT_2}"
-                    sh "export MONGO_URI=${MONGO_URI}"
                 }
 
                 dir('order-service'){
                     sh 'npm install'
-                    sh "export PORT=${PORT_3}"
-                    sh "export DATABASE_URL=${DATABASE_URL_3}"
                 }
 
                 dir('gateway'){
                     sh 'npm install'
-                    sh "export PORT=${GATEWAY_PORT}"
-                    sh "export AUTH_SERVICE_URL=${AUTH_SERVICE_URL}"
-                    sh "export PRODUCT_SERVICE_URL=${PRODUCT_SERVICE_URL}"
-                    sh "export ORDER_SERVICE_URL=${ORDER_SERVICE_URL}"
                 }
+            }
+        }
+
+        stage('Create Environment Files'){
+            steps {
+                // Create .env files for services
+                sh """
+                # Auth Service .env
+                echo "PORT=${PORT_1}" > auth-service/.env
+                echo "JWT_SECRET=${JWT_SECRET}" >> auth-service/.env
+                echo "DATABASE_URL=${DATABASE_URL_1}" >> auth-service/.env
+                
+                # Product Service .env
+                echo "PORT=${PORT_2}" > product-service/.env
+                echo "MONGO_URI=${MONGO_URI}" >> product-service/.env
+                
+                # Order Service .env
+                echo "PORT=${PORT_3}" > order-service/.env
+                echo "DATABASE_URL=${DATABASE_URL_3}" >> order-service/.env
+                
+                # Gateway .env
+                echo "PORT=${GATEWAY_PORT}" > gateway/.env
+                echo "AUTH_SERVICE_URL=${AUTH_SERVICE_URL}" >> gateway/.env
+                echo "PRODUCT_SERVICE_URL=${PRODUCT_SERVICE_URL}" >> gateway/.env
+                echo "ORDER_SERVICE_URL=${ORDER_SERVICE_URL}" >> gateway/.env
+                """
+                
+                // Debug to verify env files were created
+                sh 'ls -la */.'
+                sh 'cat auth-service/.env'
             }
         }
 
         stage('Build & Run Containers'){
             steps {
-                sh 'docker-compose up -d --build'
+                // Use environment variables while running docker-compose
+                withEnv([
+                    "MONGO_URI=${MONGO_URI}",
+                    "DATABASE_URL_1=${DATABASE_URL_1}",
+                    "DATABASE_URL_3=${DATABASE_URL_3}",
+                    "JWT_SECRET=${JWT_SECRET}",
+                    "PORT_1=${PORT_1}",
+                    "PORT_2=${PORT_2}",
+                    "PORT_3=${PORT_3}",
+                    "GATEWAY_PORT=${GATEWAY_PORT}",
+                    "AUTH_SERVICE_URL=${AUTH_SERVICE_URL}",
+                    "PRODUCT_SERVICE_URL=${PRODUCT_SERVICE_URL}",
+                    "ORDER_SERVICE_URL=${ORDER_SERVICE_URL}"
+                ]) {
+                    sh 'docker-compose up -d --build'
+                }
             }
         }
     }
