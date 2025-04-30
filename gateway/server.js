@@ -25,7 +25,7 @@ app.use('/order', orderRoutes);
 const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-  res.send('welcome to gateway!');
+  res.send('HELLO WELCOME EVERYONE TO gateway!');
 }
 );
 

@@ -16,7 +16,7 @@ connectDB();
 app.use("/api/service", productRouter);;
 
 app.get('/', (req, res) => {
-    res.send('Hello welcome to product service');
+    res.send('HELLO WELCOME EVERYONE TO product service');
 }
 );  
 

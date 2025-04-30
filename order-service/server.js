@@ -11,7 +11,7 @@ app.use('/api/service', orderRouter);
 const PORT = process.env.PORT || 3003;
 
 app.get('/', (req, res) => {
-  res.send('welcome to order service!');
+  res.send('HELLO WELCOME EVERYONE TO order service!');
 }
 );
 

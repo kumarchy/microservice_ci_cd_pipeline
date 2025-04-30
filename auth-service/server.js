@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3001;
 app.use('/api/service', userRouter);
 
 app.get('/', (req, res) => {
-  res.send('Hello welcome to auth service!');
+  res.send('HELLO WELCOME EVERYONE TO auth service!');
 }
 );
 
