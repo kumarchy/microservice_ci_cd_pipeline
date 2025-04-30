@@ -143,6 +143,29 @@ pipeline {
                 sh 'echo "Docker Compose deployment completed"'
             }
         }
+
+        stage('Build Docker Images'){
+            steps {
+                sh 'docker build -t passwordyoho3/microservices-app:auth-service-latest ./auth-service'
+                sh 'docker build -t passwordyoho3/microservices-app:product-service-latest ./product-service'
+                sh 'docker build -t passwordyoho3/microservices-app:order-service-latest ./order-service'
+                sh 'docker build -t passwordyoho3/microservices-app:gateway-latest ./gateway'
+                sh 'docker build -t passwordyoho3/microservices-app:client-latest ./client'
+            }
+        }
+
+        stage('Push Images to DockerHub'){
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub', passwordVariable:'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]){
+                    sh 'docker login -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}'
+                    sh 'docker push passwordyoho3/microservices-app:auth-service-latest'
+                    sh 'docker push passwordyoho3/microservices-app:product-service-latest'
+                    sh 'docker push passwordyoho3/microservices-app:order-service-latest'
+                    sh 'docker push passwordyoho3/microservices-app:gateway-latest'
+                    sh 'docker push passwordyoho3/microservices-app:client-latest'
+                }
+            }
+        }
     }
     
     post {
